@@ -1,0 +1,1334 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mnemônix - Sistema Maior</title>
+    
+    <style>
+        /* =========================================================
+           1. CSS VARIABLES & RESET
+           ========================================================= */
+        :root {
+            --primary: #4F46E5;
+            --primary-dark: #4338CA;
+            --bg-color: #F8FAFC;
+            --surface: #FFFFFF;
+            --text-main: #0F172A;
+            --text-muted: #64748B;
+            --border-color: #E2E8F0;
+            --success: #10B981;
+            --success-dark: #059669;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --danger-dark: #DC2626;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+            --radius-full: 9999px;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+            --font-main: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { font-family: var(--font-main); background-color: var(--bg-color); color: var(--text-main); line-height: 1.5; min-height: 100vh; display: flex; flex-direction: column; }
+
+        /* =========================================================
+           2. APP ARCHITECTURE & NAVIGATION
+           ========================================================= */
+        #app { max-width: 600px; margin: 0 auto; width: 100%; min-height: 100vh; background-color: var(--bg-color); position: relative; box-shadow: var(--shadow-sm); }
+        .view { display: none; padding: 20px; animation: fadeIn 0.3s ease-in-out; padding-bottom: 80px; }
+        .view.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        header { background-color: var(--surface); padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 10; }
+        .header-title { font-size: 1.25rem; font-weight: 700; color: var(--text-main); text-align: center; position: absolute; left: 50%; transform: translateX(-50%); }
+        .btn-back { background: none; border: none; font-size: 1rem; color: var(--primary); font-weight: 600; padding: 8px 12px; margin-left: -12px; cursor: pointer; display: none; align-items: center; gap: 4px; z-index: 11; }
+        .header-actions { display: flex; gap: 8px; z-index: 11; margin-left: auto; }
+        .btn-icon { background: none; border: none; font-size: 1.4rem; color: var(--text-muted); padding: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center;}
+
+        /* =========================================================
+           3. UI COMPONENTS & BUTTONS
+           ========================================================= */
+        .btn { width: 100%; padding: 14px; border-radius: var(--radius-md); font-size: 1rem; font-weight: 600; cursor: pointer; border: none; transition: background-color 0.2s, transform 0.1s; margin-bottom: 12px; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .btn:active { transform: scale(0.98); }
+        .btn-primary { background-color: var(--primary); color: white; }
+        .btn-primary:active { background-color: var(--primary-dark); }
+        .btn-success { background-color: var(--success); color: white; }
+        .btn-success:active { background-color: var(--success-dark); }
+        .btn-danger { background-color: var(--danger); color: white; }
+        .btn-danger:active { background-color: var(--danger-dark); }
+        .btn-outline { background-color: transparent; color: var(--text-muted); border: 1px solid var(--border-color); }
+        .btn-outline:active { background-color: var(--border-color); }
+
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-main); margin-bottom: 8px; }
+        .form-control { width: 100%; padding: 14px; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 1rem; font-family: var(--font-main); background-color: var(--surface); color: var(--text-main); }
+        .form-control:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+        select.form-control { appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 1rem center; background-size: 1em; }
+        
+        .chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
+        .chip { padding: 8px 16px; border-radius: var(--radius-full); font-size: 0.9rem; font-weight: 500; border: 1px solid var(--border-color); background: var(--surface); color: var(--text-muted); cursor: pointer; transition: all 0.2s; }
+        .chip.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+        .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px); background-color: var(--text-main); color: white; padding: 12px 24px; border-radius: 30px; font-size: 0.9rem; font-weight: 500; opacity: 0; transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.3s; z-index: 1000; box-shadow: var(--shadow-md); white-space: nowrap; }
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+        .status-badge { display: inline-block; padding: 4px 12px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 600; }
+        .status-default { background-color: var(--border-color); color: var(--text-muted); }
+        .status-custom { background-color: var(--success); color: white; }
+        .mastery-badge { font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: 600; display: inline-block; }
+
+        /* Modal Overlay */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); z-index: 9999; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.2s; padding: 20px; }
+        .modal-overlay.show { opacity: 1; pointer-events: auto; }
+        .modal-content { background: var(--surface); padding: 24px; border-radius: var(--radius-lg); width: 100%; max-width: 400px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-lg); transform: scale(0.95); transition: transform 0.2s; text-align: left; }
+        .modal-overlay.show .modal-content { transform: scale(1); }
+        .modal-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 12px; color: var(--text-main); text-align: center;}
+        .modal-msg { font-size: 0.95rem; color: var(--text-muted); margin-bottom: 24px; line-height: 1.6; }
+        .modal-actions { display: flex; gap: 12px; margin-top: 24px; }
+        .modal-actions .btn { margin-bottom: 0; }
+
+        /* =========================================================
+           4. HOME, STATS & TABLE VIEWS
+           ========================================================= */
+        .hero { text-align: center; margin-bottom: 32px; margin-top: 20px; }
+        .hero h1 { font-size: 2rem; color: var(--primary); margin-bottom: 8px; }
+        .hero p { color: var(--text-muted); font-size: 0.95rem; }
+
+        .progress-card { background: var(--surface); border-radius: var(--radius-lg); padding: 20px; border: 1px solid var(--border-color); margin-bottom: 24px; }
+        .progress-header { display: flex; justify-content: space-between; margin-bottom: 12px; font-weight: 600; font-size: 0.9rem; }
+        .progress-track { width: 100%; background: var(--border-color); height: 10px; border-radius: var(--radius-full); overflow: hidden; margin-bottom: 12px; }
+        .progress-fill { background: var(--success); height: 100%; transition: width 0.5s ease; }
+        .progress-meta { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 12px; }
+
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .card { background: var(--surface); border-radius: var(--radius-lg); padding: 20px 16px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); text-align: center; cursor: pointer; transition: transform 0.1s, box-shadow 0.1s; position: relative; }
+        .card:active { transform: scale(0.98); }
+        .card-icon { font-size: 2rem; margin-bottom: 12px; }
+        .card-title { font-weight: 600; font-size: 1rem; color: var(--text-main); }
+        
+        .controls-container { position: sticky; top: 61px; background-color: var(--bg-color); padding: 10px 0 16px 0; z-index: 9; }
+        .search-bar { margin-bottom: 12px; }
+        .filters { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 8px; }
+        .filters::-webkit-scrollbar { display: none; }
+        .table-stats { font-size: 0.8rem; color: var(--text-muted); margin-top: 8px; text-align: right; }
+        .table-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px; margin-top: 10px; }
+        .number-card { background: var(--surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 6px; text-align: center; cursor: pointer; position: relative; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; justify-content: center; aspect-ratio: 1 / 1; }
+        .number-card.is-custom { border-color: var(--success); background-color: #F0FDF4; }
+        .nc-num { font-size: 1.5rem; font-weight: 700; color: var(--primary); line-height: 1; margin-bottom: 4px; }
+        .number-card.is-custom .nc-num { color: var(--success); }
+        .nc-word { font-size: 0.75rem; color: var(--text-main); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
+        
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+        .stats-box { background: var(--bg-color); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color); text-align: center; }
+        .stats-box-value { font-size: 1.5rem; font-weight: 700; color: var(--primary-dark); }
+        .stats-box-label { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; margin-top: 4px; }
+
+        /* =========================================================
+           5. DETAIL & FLASHCARDS VIEWS
+           ========================================================= */
+        .detail-header { text-align: center; margin-bottom: 24px; margin-top: 10px; }
+        .detail-number { font-size: 4rem; font-weight: 700; color: var(--primary); line-height: 1; }
+        .detail-default-word { color: var(--text-muted); font-size: 0.9rem; margin-top: 8px; }
+        textarea.form-control { resize: vertical; min-height: 100px; }
+        
+        .config-section { background: var(--surface); padding: 20px; border-radius: var(--radius-lg); border: 1px solid var(--border-color); margin-bottom: 24px; }
+        .config-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 16px; color: var(--primary-dark); }
+        
+        .fc-progress-container { text-align: center; margin-bottom: 24px; font-weight: 600; color: var(--text-muted); }
+        .fc-scene { perspective: 1000px; width: 100%; aspect-ratio: 3 / 4; max-height: 450px; margin-bottom: 32px; transition: opacity 0.2s ease, transform 0.2s ease; }
+        .fc-card { width: 100%; height: 100%; position: relative; transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1); transform-style: preserve-3d; cursor: pointer; }
+        .fc-card.is-flipped { transform: rotateY(180deg); }
+        .fc-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; background: var(--surface); border-radius: var(--radius-xl); box-shadow: var(--shadow-lg); border: 2px solid var(--border-color); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 24px; text-align: center; }
+        .fc-face-front { background: linear-gradient(145deg, #ffffff, #f8fafc); }
+        .fc-face-back { transform: rotateY(180deg); background: linear-gradient(145deg, #f8fafc, #f1f5f9); }
+        
+        .fc-number { font-size: 6rem; font-weight: 800; color: var(--primary); line-height: 1; letter-spacing: -2px; }
+        .fc-word { font-size: 2.5rem; font-weight: 700; color: var(--text-main); margin-bottom: 16px; line-height: 1.1; }
+        .fc-hint { font-size: 1.1rem; color: var(--text-muted); font-style: italic; margin-top: 16px; border-top: 1px dashed var(--border-color); padding-top: 16px; width: 100%; }
+        
+        .fc-instructions { text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px; animation: pulse 2s infinite; transition: opacity 0.2s;}
+        @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+        .fc-actions { display: flex; gap: 16px; opacity: 0; pointer-events: none; transform: translateY(10px); transition: all 0.3s ease; }
+        .fc-actions.visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
+        .fc-actions .btn { margin-bottom: 0; padding: 18px; font-size: 1.1rem; }
+
+        .summary-card { background: var(--surface); border-radius: var(--radius-xl); padding: 32px 20px; text-align: center; border: 1px solid var(--border-color); margin-bottom: 24px; box-shadow: var(--shadow-md); }
+        .summary-icon { font-size: 4rem; margin-bottom: 16px; }
+        .summary-title { font-size: 1.5rem; font-weight: 700; color: var(--primary-dark); margin-bottom: 8px; }
+        .summary-stats { display: flex; justify-content: center; gap: 16px; margin-top: 24px; border-top: 1px solid var(--border-color); padding-top: 24px; flex-wrap: wrap; }
+        .stat-item { display: flex; flex-direction: column; align-items: center; min-width: 60px; }
+        .stat-value { font-size: 1.5rem; font-weight: 700; }
+        .stat-value.easy { color: var(--success); }
+        .stat-value.hard { color: var(--danger); }
+        .stat-value.custom { color: var(--warning); }
+        .stat-label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; margin-top: 4px; }
+
+        /* =========================================================
+           6. SEQUENCES VIEWS
+           ========================================================= */
+        .seq-display-card { background: var(--surface); border-radius: var(--radius-xl); padding: 40px 20px; text-align: center; border: 2px solid var(--border-color); margin-bottom: 24px; box-shadow: var(--shadow-lg); min-height: 250px; display: flex; flex-direction: column; justify-content: center; }
+        .seq-digits { font-size: 3rem; font-weight: 800; color: var(--text-main); letter-spacing: 4px; word-break: break-word; line-height: 1.4; font-family: monospace; }
+        .seq-words-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+        .seq-word-chip { font-size: 1.4rem; font-weight: 700; color: var(--primary-dark); background: #E0E7FF; padding: 10px 16px; border-radius: var(--radius-lg); }
+        .seq-input-huge { font-size: 2.5rem; text-align: center; letter-spacing: 4px; font-weight: 700; padding: 20px; margin-bottom: 32px; font-family: monospace; }
+        .diff-char { display: inline-block; margin: 0 2px; }
+        .diff-correct { color: var(--success); }
+        .diff-wrong { color: var(--danger); text-decoration: line-through; opacity: 0.7; }
+        .diff-missing { color: var(--text-muted); font-style: italic; font-size: 0.8em; }
+        .result-box { background: #F8FAFC; border-radius: var(--radius-md); padding: 16px; margin-top: 16px; text-align: left; font-size: 1.1rem; border: 1px solid var(--border-color); }
+        .result-box-label { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; margin-bottom: 4px; }
+        .speed-progress-container { display: none; width: 100%; background: var(--border-color); height: 8px; border-radius: var(--radius-full); margin-bottom: 24px; overflow: hidden; }
+        .speed-progress-bar { background: var(--primary); height: 100%; width: 100%; transform-origin: left; }
+
+        /* =========================================================
+           7. LOOKUP & SETTINGS VIEWS
+           ========================================================= */
+        .lookup-card { display: flex; align-items: center; justify-content: space-between; padding: 16px; background: var(--surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); cursor: pointer; margin-bottom: 12px; transition: transform 0.1s; }
+        .lookup-card:active { transform: scale(0.98); background-color: #F8FAFC; }
+        .lookup-num { font-size: 1.5rem; font-weight: 700; color: var(--primary); min-width: 50px; }
+        .lookup-content { flex-grow: 1; margin-left: 12px; overflow: hidden; }
+        .lookup-word { font-size: 1.1rem; font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .lookup-hint { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .settings-danger-zone { border: 1px solid #FECACA; background: #FEF2F2; padding: 20px; border-radius: var(--radius-lg); margin-top: 32px; }
+
+        /* Help formatting */
+        .help-topic { margin-bottom: 16px; }
+        .help-topic h4 { font-size: 1.05rem; color: var(--primary-dark); margin-bottom: 4px; }
+        .help-topic p { font-size: 0.9rem; margin:0; }
+    </style>
+</head>
+<body>
+
+    <div id="app">
+        <!-- HEADER -->
+        <header>
+            <button id="btnBack" class="btn-back">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                Voltar
+            </button>
+            <div id="headerTitle" class="header-title">Mnemônix</div>
+            <div class="header-actions">
+                <button id="btnHelp" class="btn-icon" onclick="UI.openHelp()" aria-label="Ajuda">❓</button>
+                <button id="btnSettings" class="btn-icon" onclick="Router.navigate('settings')" aria-label="Configurações">⚙️</button>
+            </div>
+        </header>
+
+        <!-- VIEW: HOME -->
+        <main id="view-home" class="view active">
+            <div class="hero">
+                <h1>Mnemônix</h1>
+                <p>Seu cérebro, estruturado. Domine o Sistema Maior.</p>
+            </div>
+
+            <div class="progress-card">
+                <div class="progress-header">
+                    <span>Progresso do Dicionário</span>
+                    <span id="homeProgressText">0 / 110</span>
+                </div>
+                <div class="progress-track">
+                    <div id="homeProgressBar" class="progress-fill" style="width: 0%;"></div>
+                </div>
+                <div class="progress-meta">
+                    <div id="homeMetaMastery">Média: 0.0</div>
+                    <div id="homeMetaWeakStrong">Fracos: 0 | Fortes: 0</div>
+                </div>
+                <div class="progress-meta" style="border: none; padding-top: 4px; margin-top: 0; justify-content: center;">
+                    <div id="homeMetaLastTrain" style="font-style: italic;">Último treino: Ainda não treinado</div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="card" onclick="Router.navigate('table')">
+                    <div class="card-icon">🔢</div>
+                    <div class="card-title">Dicionário Completo</div>
+                </div>
+                <div class="card" onclick="Router.navigate('flashcard-config')">
+                    <div class="card-icon">🎴</div>
+                    <div class="card-title">Flashcards</div>
+                </div>
+                <div class="card" onclick="Router.navigate('seq-config')">
+                    <div class="card-icon">⚡</div>
+                    <div class="card-title">Sequências</div>
+                </div>
+                <div class="card" onclick="Router.navigate('lookup')">
+                    <div class="card-icon">🔍</div>
+                    <div class="card-title">Busca Reversa</div>
+                </div>
+                <div class="card" onclick="Router.navigate('stats')" style="grid-column: span 2;">
+                    <div class="card-icon">📊</div>
+                    <div class="card-title">Estatísticas Detalhadas</div>
+                </div>
+            </div>
+        </main>
+
+        <!-- VIEW: TABLE 0-99 -->
+        <main id="view-table" class="view">
+            <div class="controls-container">
+                <input type="text" id="searchInput" class="search-bar form-control" placeholder="Buscar número ou palavra..." autocomplete="off">
+                <div class="filters">
+                    <button class="chip active" onclick="TableView.setFilter('all', this)">Todos Status</button>
+                    <button class="chip" onclick="TableView.setFilter('custom', this)">Personalizados</button>
+                    <button class="chip" onclick="TableView.setFilter('default', this)">Padrão</button>
+                </div>
+                <div class="filters" style="padding-bottom: 8px;">
+                    <select id="tableDecadeFilter" class="form-control" style="padding: 8px 12px; height: auto;" onchange="TableView.setDecadeFilter(this.value)">
+                        <option value="all">Todas as Faixas</option>
+                        <option value="single">Avulsos (0-9)</option>
+                        <option value="00">00-09</option>
+                        <option value="10">10-19</option>
+                        <option value="20">20-29</option>
+                        <option value="30">30-39</option>
+                        <option value="40">40-49</option>
+                        <option value="50">50-59</option>
+                        <option value="60">60-69</option>
+                        <option value="70">70-79</option>
+                        <option value="80">80-89</option>
+                        <option value="90">90-99</option>
+                    </select>
+                </div>
+                <div class="table-stats" id="tableStatsText">Mostrando 110 itens</div>
+            </div>
+            <div class="table-grid" id="tableGridContainer"></div>
+            <div id="tableEmptyState" style="display: none; text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                <div style="font-size: 2rem; margin-bottom: 10px;">🔍</div>
+                <p>Nenhum item encontrado.</p>
+            </div>
+        </main>
+
+        <!-- VIEW: DETAIL -->
+        <main id="view-detail" class="view">
+            <div class="detail-header">
+                <div class="detail-number" id="detailNumber">00</div>
+                <div style="display: flex; gap: 8px; justify-content: center; margin-bottom: 12px; align-items: center;">
+                    <div id="detailBadge" class="status-badge status-default" style="margin: 0;">Padrão</div>
+                    <div id="detailMasteryBadge"></div>
+                </div>
+                <div class="detail-default-word" id="detailDefaultWord">Padrão: Rir</div>
+            </div>
+            <form id="detailForm" onsubmit="event.preventDefault(); DetailView.save();">
+                <div class="form-group">
+                    <label for="inputWord">Sua Palavra Ativa</label>
+                    <input type="text" id="inputWord" class="form-control" placeholder="Ex: Rato" autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label for="inputHint">Frase / Imagem Mental (Opcional)</label>
+                    <textarea id="inputHint" class="form-control" placeholder="Descreva a imagem mental absurda para fixar esta palavra..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                <button type="button" id="btnReset" class="btn btn-outline" onclick="DetailView.resetToDefault()" style="display:none; color: var(--danger); border-color: #FECACA;">Remover Personalização</button>
+            </form>
+        </main>
+
+        <!-- VIEW: FLASHCARD CONFIG -->
+        <main id="view-flashcard-config" class="view">
+            <div class="hero" style="margin-top: 0; margin-bottom: 24px;">
+                <h2 style="color: var(--text-main);">Configurar Treino</h2>
+            </div>
+            <div class="config-section">
+                <div class="config-title">Modo de Treino</div>
+                <div class="chip-group" id="fcModeGroup">
+                    <button class="chip active" onclick="FCConfigView.setMode('normal', this)">Normal (Nº ➔ Palavra)</button>
+                    <button class="chip" onclick="FCConfigView.setMode('reverse', this)">Reverso (Palavra ➔ Nº)</button>
+                </div>
+            </div>
+            <div class="config-section">
+                <div class="config-title">Fonte das Cartas</div>
+                <div class="chip-group" id="fcSourceGroup">
+                    <button class="chip active" data-value="all" onclick="FCConfigView.setSource('all', this)">Todas (110)</button>
+                    <button class="chip" data-value="custom" onclick="FCConfigView.setSource('custom', this)">Somente personalizadas</button>
+                    <button class="chip" data-value="weak" onclick="FCConfigView.setSource('weak', this)">Fracos (Domínio 0-2)</button>
+                    <button class="chip" data-value="strong" onclick="FCConfigView.setSource('strong', this)">Fortes (Domínio 4-5)</button>
+                </div>
+            </div>
+            <div class="config-section">
+                <div class="config-title">Quantidade</div>
+                <div class="chip-group" id="fcQtyGroup" style="margin-bottom: 12px;">
+                    <button class="chip active" data-value="10" onclick="FCConfigView.setQty(10, this)">10</button>
+                    <button class="chip" data-value="20" onclick="FCConfigView.setQty(20, this)">20</button>
+                    <button class="chip" data-value="50" onclick="FCConfigView.setQty(50, this)">50</button>
+                    <button class="chip" data-value="110" onclick="FCConfigView.setQty(110, this)">Max</button>
+                </div>
+                <input type="number" id="fcCustomQty" class="form-control" placeholder="Ou digite (ex: 15)" min="1" max="110" oninput="FCConfigView.setCustomQty(this.value)">
+            </div>
+            <button class="btn btn-primary" onclick="FCConfigView.startSession()" style="padding: 18px; font-size: 1.1rem;">▶ Iniciar Treino</button>
+        </main>
+
+        <!-- VIEW: FLASHCARD SESSION -->
+        <main id="view-flashcard-session" class="view">
+            <div class="fc-progress-container">
+                <span id="fcProgressLabel">Carta</span> <span id="fcCurrentCount">1</span> de <span id="fcTotalCount">10</span>
+                <div id="fcExtraBadge" style="display:none; color: var(--warning); font-size: 0.8rem; margin-top: 4px;">+ Reforço pendente</div>
+            </div>
+            <div class="fc-scene" id="fcScene">
+                <div class="fc-card" id="fcCardElement" onclick="FCSessionView.flipCard()">
+                    <div class="fc-face fc-face-front" id="fcFaceFront"></div>
+                    <div class="fc-face fc-face-back" id="fcFaceBack"></div>
+                </div>
+            </div>
+            <div class="fc-instructions" id="fcInstructions">Toque na carta para virar</div>
+            <div class="fc-actions" id="fcActions">
+                <button class="btn btn-danger" onclick="FCSessionView.answer('hard')">🔴 Difícil</button>
+                <button class="btn btn-success" onclick="FCSessionView.answer('easy')">🟢 Fácil</button>
+            </div>
+        </main>
+
+        <!-- VIEW: FLASHCARD SUMMARY -->
+        <main id="view-flashcard-summary" class="view">
+            <div class="summary-card">
+                <div class="summary-icon">🎉</div>
+                <div class="summary-title">Treino Concluído!</div>
+                <div class="summary-stats">
+                    <div class="stat-item"><div class="stat-value easy" id="summaryEasy">0</div><div class="stat-label">Fáceis</div></div>
+                    <div class="stat-item"><div class="stat-value hard" id="summaryHard">0</div><div class="stat-label">Difíceis</div></div>
+                    <div class="stat-item"><div class="stat-value custom" id="summaryCustom">0</div><div class="stat-label">Pers.</div></div>
+                    <div class="stat-item"><div class="stat-value" id="summaryTotal" style="color: var(--primary);">0</div><div class="stat-label">Total Base</div></div>
+                    <div class="stat-item" id="summaryExtraWrapper" style="display: none;"><div class="stat-value" id="summaryExtra" style="color: var(--warning);">0</div><div class="stat-label">Reforços</div></div>
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="Router.navigate('flashcard-config')">Novo Treino</button>
+            <button class="btn btn-outline" onclick="Router.navigate('home')">Voltar ao Início</button>
+        </main>
+
+        <!-- VIEW: SEQUENCE CONFIG -->
+        <main id="view-seq-config" class="view">
+            <div class="hero" style="margin-top: 0; margin-bottom: 24px;">
+                <h2 style="color: var(--text-main);">Treino de Sequências</h2>
+            </div>
+            <div class="config-section">
+                <div class="config-title">Estímulo (Modo de Sequência)</div>
+                <div class="chip-group" id="seqTypeGroup">
+                    <button class="chip active" onclick="SeqConfigView.setSeqType('numbers', this)">Números (Padrão)</button>
+                    <button class="chip" onclick="SeqConfigView.setSeqType('words', this)">Palavras (Reverso)</button>
+                </div>
+            </div>
+            <div class="config-section">
+                <div class="config-title">Modo de Exibição Visual</div>
+                <div class="chip-group" id="seqChunkGroup">
+                    <button class="chip active" onclick="SeqConfigView.toggleChunkMode(false, this)">Contínuo</button>
+                    <button class="chip" onclick="SeqConfigView.toggleChunkMode(true, this)">Em Blocos (Chunks)</button>
+                </div>
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 8px;">(Aplica-se apenas ao estímulo "Números")</p>
+            </div>
+            <div class="config-section">
+                <div class="config-title">Modo Velocidade</div>
+                <div class="chip-group" id="seqSpeedGroup" style="margin-bottom: 12px;">
+                    <button class="chip active" onclick="SeqConfigView.toggleSpeedMode(false, this)">Desativado</button>
+                    <button class="chip" onclick="SeqConfigView.toggleSpeedMode(true, this)">Ativado</button>
+                </div>
+                <div id="seqSpeedTimeWrapper" style="display: none; animation: fadeIn 0.3s;">
+                    <label style="font-size: 0.85rem; color: var(--text-muted); display:block; margin-bottom: 8px;">Tempo de exposição (segundos):</label>
+                    <input type="number" id="seqSpeedTime" class="form-control" value="3" min="0.5" step="0.5" max="20" onchange="SeqConfigView.setSpeedTime(this.value)">
+                </div>
+            </div>
+            <div class="config-section">
+                <div class="config-title">Tamanho da Sequência (Dígitos)</div>
+                <div class="chip-group" id="seqQtyGroup" style="margin-bottom: 12px;">
+                    <button class="chip active" data-value="4" onclick="SeqConfigView.setQty(4, this)">4</button>
+                    <button class="chip" data-value="6" onclick="SeqConfigView.setQty(6, this)">6</button>
+                    <button class="chip" data-value="8" onclick="SeqConfigView.setQty(8, this)">8</button>
+                    <button class="chip" data-value="10" onclick="SeqConfigView.setQty(10, this)">10</button>
+                    <button class="chip" data-value="12" onclick="SeqConfigView.setQty(12, this)">12</button>
+                    <button class="chip" data-value="20" onclick="SeqConfigView.setQty(20, this)">20</button>
+                </div>
+                <input type="number" id="seqCustomQty" class="form-control" placeholder="Ou digite (ex: 15, máx 50)" min="1" max="50" oninput="SeqConfigView.setCustomQty(this.value)">
+            </div>
+            <button class="btn btn-primary" onclick="SeqConfigView.startSession()" style="padding: 18px; font-size: 1.1rem;">▶ Gerar Sequência</button>
+        </main>
+
+        <!-- VIEW: SEQUENCE MEMORIZE -->
+        <main id="view-seq-memorize" class="view">
+            <p style="text-align: center; color: var(--text-muted); margin-bottom: 16px; font-weight: 600;">Memorize esta sequência:</p>
+            <div class="speed-progress-container" id="seqSpeedProgressContainer">
+                <div class="speed-progress-bar" id="seqSpeedProgressBar"></div>
+            </div>
+            <div class="seq-display-card">
+                <div class="seq-digits" id="seqDisplayDigits">0000</div>
+            </div>
+            <button id="btnSeqMemorize" class="btn btn-primary" onclick="SeqMemorizeView.goToAnswer()" style="padding: 18px; font-size: 1.1rem;">👁️ Já Memorizei</button>
+            <button class="btn btn-outline" onclick="SeqConfigView.startSession()">Gerar Outra (Descartar)</button>
+        </main>
+
+        <!-- VIEW: SEQUENCE ANSWER -->
+        <main id="view-seq-answer" class="view">
+            <p style="text-align: center; color: var(--text-muted); margin-bottom: 16px; font-weight: 600;">O que você lembra?</p>
+            <input type="tel" id="seqInputAnswer" class="form-control seq-input-huge" pattern="\d*" inputmode="numeric" placeholder="..." autocomplete="off">
+            <button class="btn btn-success" onclick="SeqAnswerView.submitAnswer()" style="padding: 18px; font-size: 1.1rem;">✅ Confirmar Resposta</button>
+        </main>
+
+        <!-- VIEW: SEQUENCE RESULT -->
+        <main id="view-seq-result" class="view">
+            <div class="summary-card" style="padding-bottom: 24px;">
+                <div class="summary-icon" id="seqResultIcon">🎯</div>
+                <div class="summary-title" id="seqResultTitle">Resultado</div>
+                <div class="summary-stats" style="margin-top: 16px;">
+                    <div class="stat-item"><div class="stat-value" id="seqResTotal" style="color: var(--primary);">0</div><div class="stat-label">Total</div></div>
+                    <div class="stat-item"><div class="stat-value easy" id="seqResCorrect">0</div><div class="stat-label">Acertos</div></div>
+                    <div class="stat-item"><div class="stat-value" id="seqResPct" style="color: var(--text-main);">0%</div><div class="stat-label">Precisão</div></div>
+                </div>
+
+                <div class="result-box" id="seqStimulusBox" style="display: none; background: #F0FDF4; border-color: #10B981;">
+                    <div class="result-box-label" style="color: #059669;">Estímulo Exibido:</div>
+                    <div id="seqStimulusWords" style="font-size: 1.1rem; font-weight: 600; color: #064E3B; line-height: 1.4;"></div>
+                </div>
+
+                <div class="result-box">
+                    <div class="result-box-label">Sua Resposta:</div>
+                    <div id="seqVisualDiff" style="font-family: monospace; font-size: 1.2rem; font-weight: 700; word-break: break-all; letter-spacing: 2px;"></div>
+                </div>
+                <div class="result-box" style="background: transparent; border: none; padding-top: 8px;">
+                    <div class="result-box-label">Gabarito Esperado:</div>
+                    <div id="seqExpected" style="font-family: monospace; font-size: 1.1rem; color: var(--text-muted); word-break: break-all; letter-spacing: 2px;">0000</div>
+                    <div id="seqExpectedChunked" style="display: none; font-family: monospace; font-size: 1.1rem; color: var(--text-main); font-weight:700; word-break: break-all; letter-spacing: 2px; margin-top: 8px;"></div>
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="Router.navigate('seq-config')">Nova Sequência</button>
+            <button class="btn btn-outline" onclick="SeqConfigView.retrySame()">Tentar Esta Novamente</button>
+            <button class="btn btn-outline" onclick="Router.navigate('home')" style="border: none;">Voltar ao Início</button>
+        </main>
+
+        <!-- VIEW: LOOKUP -->
+        <main id="view-lookup" class="view">
+            <div style="position: sticky; top: 61px; background: var(--bg-color); z-index: 9; padding-bottom: 12px; margin-top: 10px;">
+                <input type="text" id="lookupInput" class="form-control" style="font-size: 1.2rem; padding: 16px; margin-bottom: 16px;" placeholder="Digite para buscar..." autocomplete="off">
+                <div class="chip-group">
+                    <button class="chip active" onclick="LookupView.setMode('word', this)">Por Palavra</button>
+                    <button class="chip" onclick="LookupView.setMode('number', this)">Por Número</button>
+                </div>
+            </div>
+            <div id="lookupResultsContainer" style="display: flex; flex-direction: column; gap: 12px; margin-top: 8px;"></div>
+            <div id="lookupEmptyState" style="text-align: center; padding: 40px 20px; color: var(--text-muted); display: none;">
+                <div style="font-size: 2rem; margin-bottom: 10px;">🔍</div>
+                <p>Nenhum resultado encontrado.</p>
+            </div>
+        </main>
+
+        <!-- VIEW: STATS -->
+        <main id="view-stats" class="view">
+            <div class="hero" style="margin-top: 0; margin-bottom: 24px;">
+                <h2 style="color: var(--text-main);">Estatísticas</h2>
+                <p>Acompanhe a retenção da sua memória.</p>
+            </div>
+            
+            <div class="config-section">
+                <div class="config-title">Uso do App</div>
+                <div class="stats-grid" style="margin-bottom: 0;">
+                    <div class="stats-box"><div class="stats-box-value" id="stTotalSessions">0</div><div class="stats-box-label">Sessões Totais</div></div>
+                    <div class="stats-box"><div class="stats-box-value" id="stFlashSessions" style="color: var(--primary);">0</div><div class="stats-box-label">Flashcards</div></div>
+                    <div class="stats-box"><div class="stats-box-value" id="stSeqSessions" style="color: var(--success);">0</div><div class="stats-box-label">Sequências</div></div>
+                    <div class="stats-box"><div class="stats-box-value" id="stBestSeq" style="color: var(--warning);">0</div><div class="stats-box-label">Melhor Sequência</div></div>
+                    <div class="stats-box" style="grid-column: span 2;"><div class="stats-box-value" id="stLastMode" style="font-size: 1.1rem; color: var(--text-main);">-</div><div class="stats-box-label">Último Modo Jogado</div></div>
+                    <div class="stats-box" style="grid-column: span 2;"><div class="stats-box-value" id="stLastTrain" style="font-size: 1.1rem; color: var(--text-main);">-</div><div class="stats-box-label">Última Sessão</div></div>
+                </div>
+            </div>
+
+            <div class="config-section">
+                <div class="config-title">Dicionário e Base</div>
+                <div class="stats-grid" style="margin-bottom: 0;">
+                    <div class="stats-box"><div class="stats-box-value" id="stTotalItems">110</div><div class="stats-box-label">Total Base</div></div>
+                    <div class="stats-box"><div class="stats-box-value" id="stCustomItems" style="color: var(--success);">0</div><div class="stats-box-label">Personalizados</div></div>
+                    <div class="stats-box"><div class="stats-box-value" id="stDefaultItems" style="color: var(--text-muted);">0</div><div class="stats-box-label">Padrão</div></div>
+                    <div class="stats-box"><div class="stats-box-value" id="stTrainedItems">0</div><div class="stats-box-label">Já Treinados</div></div>
+                    <div class="stats-box" style="grid-column: span 2;"><div class="stats-box-value" id="stAvgMastery" style="color: var(--primary);">0.0</div><div class="stats-box-label">Média Domínio</div></div>
+                </div>
+            </div>
+
+            <div class="config-section">
+                <div class="config-title">Distribuição de Domínio</div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 12px; align-items: center;">
+                    <div style="font-size: 0.9rem; color: var(--text-main); font-weight: 500;">Forte (4-5)</div>
+                    <div id="stLevelStrong" class="status-badge status-custom">0 itens</div>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 12px; align-items: center;">
+                    <div style="font-size: 0.9rem; color: var(--text-main); font-weight: 500;">Médio (3)</div>
+                    <div id="stLevelMedium" class="status-badge" style="background: #E0E7FF; color: var(--primary-dark);">0 itens</div>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 12px; align-items: center;">
+                    <div style="font-size: 0.9rem; color: var(--text-main); font-weight: 500;">Baixo (1-2)</div>
+                    <div id="stLevelLow" class="status-badge" style="background: #FEE2E2; color: var(--danger-dark);">0 itens</div>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="font-size: 0.9rem; color: var(--text-main); font-weight: 500;">Iniciante (0)</div>
+                    <div id="stLevelZero" class="status-badge status-default">0 itens</div>
+                </div>
+            </div>
+
+            <div class="config-section" id="stMostReviewedSection" style="display: none;">
+                <div class="config-title">Item Mais Revisado</div>
+                <div style="background: var(--bg-color); padding: 16px; border-radius: var(--radius-md); text-align: center; border: 1px solid var(--border-color);">
+                    <div id="stMostRevNum" style="font-size: 2rem; font-weight: 800; color: var(--primary); line-height: 1;">00</div>
+                    <div id="stMostRevWord" style="font-size: 1.1rem; font-weight: 600; color: var(--text-main); margin-bottom: 8px;">Palavra</div>
+                    <div id="stMostRevCount" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">0 revisões</div>
+                </div>
+            </div>
+        </main>
+
+        <!-- VIEW: SETTINGS -->
+        <main id="view-settings" class="view">
+            <div class="hero" style="margin-top: 0; margin-bottom: 32px;">
+                <h2 style="color: var(--text-main);">Configurações</h2>
+                <p>Gerencie seus dados locais.</p>
+            </div>
+            <div class="config-section">
+                <div class="config-title">Backup e Restauração</div>
+                <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 16px;">Exporte suas personalizações e histórico para um arquivo JSON ou importe um backup anterior.</p>
+                <button class="btn btn-primary" onclick="SettingsView.exportBackup()">⬇️ Exportar Backup</button>
+                <button class="btn btn-outline" onclick="SettingsView.triggerImport()">⬆️ Restaurar Backup</button>
+                <input type="file" id="fileImportJson" accept=".json" style="display: none;" onchange="SettingsView.handleImport(event)">
+            </div>
+            <div class="settings-danger-zone">
+                <div class="config-title" style="color: var(--danger-dark);">Zona de Perigo</div>
+                <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 16px;">Isso apagará todas as suas personalizações e progresso, retornando o app ao formato original de fábrica.</p>
+                <button class="btn btn-danger" onclick="SettingsView.resetAllData()">⚠️ Restaurar Padrão de Fábrica</button>
+            </div>
+        </main>
+
+        <!-- TOAST & MODALS -->
+        <div id="toast" class="toast">Ação concluída!</div>
+        
+        <div id="confirmModal" class="modal-overlay">
+            <div class="modal-content">
+                <h3 id="modalTitle" class="modal-title">Confirmação</h3>
+                <p id="modalMsg" class="modal-msg">Tem certeza que deseja continuar?</p>
+                <div class="modal-actions">
+                    <button class="btn btn-outline" onclick="UI.closeConfirm()" style="flex: 1;">Cancelar</button>
+                    <button id="modalConfirmBtn" class="btn btn-danger" style="flex: 1;">Confirmar</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="helpModal" class="modal-overlay">
+            <div class="modal-content" style="max-height: 80vh; overflow-y: auto;">
+                <h3 class="modal-title" style="margin-bottom: 24px;">Como usar o Mnemônix 🧠</h3>
+                
+                <div class="help-topic">
+                    <h4>🔢 O Sistema Maior</h4>
+                    <p>Cada dígito (0-9) é associado a sons consonantais (ex: 1=T/D, 2=N, 3=M...). Juntando dígitos, criamos palavras concretas preenchendo com vogais (ex: 12 = ToNnel).</p>
+                </div>
+                <div class="help-topic">
+                    <h4>📖 Dicionário Completo</h4>
+                    <p>Consulte a base de 110 itens (0-9 e 00-99). Toque em um item para criar sua própria palavra ou adicionar uma imagem mental marcante.</p>
+                </div>
+                <div class="help-topic">
+                    <h4>🎴 Flashcards</h4>
+                    <p>Treine a associação número ↔ palavra. Marque "Fácil" para subir o domínio da carta, ou "Difícil" para refazê-la no mesmo treino. O modo reverso inverte a lógica.</p>
+                </div>
+                <div class="help-topic">
+                    <h4>⚡ Sequências Numéricas</h4>
+                    <p>O teste final de memorização. O app gera números aleatórios. Você cria uma história mental unindo as palavras. O <i>Modo Velocidade</i> esconde os números automaticamente após o tempo acabar.</p>
+                </div>
+                <div class="help-topic">
+                    <h4>⚙️ Backup Seguro</h4>
+                    <p>Todo seu progresso e customizações ficam salvos apenas no seu celular (offline). Use as Configurações para exportar um backup JSON seguro.</p>
+                </div>
+
+                <button class="btn btn-primary" style="margin-top: 16px;" onclick="UI.closeHelp()">Entendi, vamos treinar!</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        /* =========================================================
+           1. SEED DATA (110 ITENS)
+           ========================================================= */
+        const SEED_SINGLE = ["Aro", "Teia", "Noé", "Mãe", "Cão", "Lã", "Osso", "Uva", "Água", "Pia"];
+        const SEED_WORDS = [
+            "Rir", "Rato", "Reno", "Remo", "Rico", "Ralo", "Rosa", "Rifa", "Rega", "Roupa",
+            "Tiro", "Tatu", "Tênis", "Time", "Taco", "Tela", "Taça", "TV", "Toga", "Tubo", 
+            "Nora", "Nata", "Neném", "Nemo", "Nuca", "Nulo", "Nasa", "Nave", "Nega", "Nabo",
+            "Muro", "Moto", "Mina", "Múmia", "Maca", "Mala", "Mesa", "Máfia", "Mago", "Mapa",
+            "Coro", "Coiote", "Cano", "Cama", "Coco", "Cola", "Casa", "Café", "Cego", "Copo", 
+            "Louro", "Lata", "Lona", "Lama", "Louco", "Lula", "Lixo", "Luva", "Lago", "Lupa",
+            "Soro", "Seta", "Sino", "Soma", "Saco", "Sela", "Saci", "Sofá", "Sagwa", "Sapo", 
+            "Furo", "Fita", "Fone", "Fumo", "Foca", "Fila", "Fossa", "Fafá", "Fogo", "Fada",  
+            "Giro", "Gato", "Gina", "Goma", "Galo", "Gelo", "Gás", "Gafe", "Gago", "Gota", 
+            "Peru", "Pato", "Pano", "Puma", "Paca", "Pele", "Peso", "Povo", "Puxa", "Papa" 
+        ];
+        const EXPECTED_KEYS = [...[...Array(10).keys()].map(String), ...[...Array(100).keys()].map(i => i.toString().padStart(2, '0'))];
+
+        /* =========================================================
+           2. DATA STORE
+           ========================================================= */
+        const DataStore = {
+            STORAGE_KEY: 'mnemonix_data_v6',
+            STORAGE_METRICS_KEY: 'mnemonix_metrics_v1',
+            data: [],
+            metrics: {
+                totalSessions: 0,
+                totalFlashcardSessions: 0,
+                totalSequenceSessions: 0,
+                bestSequenceLength: 0,
+                lastModePlayed: '-',
+                lastSessionAt: null
+            },
+
+            init() {
+                let stored = localStorage.getItem(this.STORAGE_KEY) || localStorage.getItem('mnemonix_data_v5') || localStorage.getItem('mnemonix_data_v4') || localStorage.getItem('mnemonix_data_v3');
+                if (stored) {
+                    this.data = JSON.parse(stored);
+                    this.migrateDataIfNeeded();
+                } else {
+                    this.buildSeed();
+                }
+                
+                let storedMetrics = localStorage.getItem(this.STORAGE_METRICS_KEY);
+                if (storedMetrics) {
+                    this.metrics = { ...this.metrics, ...JSON.parse(storedMetrics) };
+                }
+            },
+
+            migrateDataIfNeeded() {
+                const existingDataMap = new Map(this.data.map(item => [item.numberValue, item]));
+                const newData = [];
+
+                EXPECTED_KEYS.forEach(key => {
+                    const existing = existingDataMap.get(key);
+                    const isSingle = key.length === 1;
+                    const defaultW = isSingle ? SEED_SINGLE[parseInt(key)] : SEED_WORDS[parseInt(key)];
+
+                    if (existing) {
+                        const rawCustom = (existing.customWord || "").trim();
+                        const isValidCustom = rawCustom !== "" && rawCustom.toLowerCase() !== defaultW.toLowerCase();
+                        
+                        newData.push({
+                            numberValue: key, defaultWord: defaultW, customWord: isValidCustom ? rawCustom : "",
+                            activeWord: isValidCustom ? rawCustom : defaultW, imageHint: (existing.imageHint || "").trim(),
+                            isCustomized: isValidCustom, masteryLevel: Number.isFinite(existing.masteryLevel) ? Math.max(0, Math.min(existing.masteryLevel, 5)) : 0,
+                            lastReviewedAt: existing.lastReviewedAt || null,
+                            reviewCount: existing.reviewCount || 0
+                        });
+                    } else {
+                        newData.push({
+                            numberValue: key, defaultWord: defaultW, customWord: "", activeWord: defaultW, 
+                            imageHint: "", isCustomized: false, masteryLevel: 0, lastReviewedAt: null, reviewCount: 0
+                        });
+                    }
+                });
+                this.data = newData; this.saveToDisk();
+            },
+
+            buildSeed() {
+                this.data = [];
+                EXPECTED_KEYS.forEach(key => {
+                    const isSingle = key.length === 1; const defaultW = isSingle ? SEED_SINGLE[parseInt(key)] : SEED_WORDS[parseInt(key)];
+                    this.data.push({ numberValue: key, defaultWord: defaultW, customWord: "", activeWord: defaultW, imageHint: "", isCustomized: false, masteryLevel: 0, lastReviewedAt: null, reviewCount: 0 });
+                });
+                this.saveToDisk();
+            },
+
+            saveToDisk() { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.data)); },
+            saveMetrics() { localStorage.setItem(this.STORAGE_METRICS_KEY, JSON.stringify(this.metrics)); },
+
+            recordSession(mode, seqLength = 0) {
+                this.metrics.totalSessions++;
+                this.metrics.lastModePlayed = mode;
+                this.metrics.lastSessionAt = Date.now();
+                
+                if (mode.startsWith('flashcard')) {
+                    this.metrics.totalFlashcardSessions++;
+                } else if (mode.startsWith('sequence')) {
+                    this.metrics.totalSequenceSessions++;
+                    if (seqLength > this.metrics.bestSequenceLength) {
+                        this.metrics.bestSequenceLength = seqLength;
+                    }
+                }
+                this.saveMetrics();
+            },
+
+            getItem(numStr) { return this.data.find(item => item.numberValue === numStr); },
+
+            updateItem(numStr, customWord, imageHint) {
+                const item = this.getItem(numStr); if (!item) return;
+                const cleanWord = customWord.trim();
+                if (cleanWord === "" || cleanWord.toLowerCase() === item.defaultWord.toLowerCase()) {
+                    item.customWord = ""; item.activeWord = item.defaultWord; item.isCustomized = false;
+                } else { item.customWord = cleanWord; item.activeWord = cleanWord; item.isCustomized = true; }
+                item.imageHint = imageHint.trim(); this.saveToDisk();
+            },
+
+            resetItem(numStr) {
+                const item = this.getItem(numStr);
+                if (item) { item.customWord = ""; item.activeWord = item.defaultWord; item.imageHint = ""; item.isCustomized = false; this.saveToDisk(); }
+            },
+
+            updateMastery(numStr, isEasy) {
+                const item = this.getItem(numStr); if(!item) return;
+                item.masteryLevel = isEasy ? Math.min((item.masteryLevel || 0) + 1, 5) : Math.max((item.masteryLevel || 0) - 1, 0);
+                item.lastReviewedAt = Date.now();
+                item.reviewCount = (item.reviewCount || 0) + 1;
+                this.saveToDisk();
+            },
+
+            getStats() {
+                const total = this.data.length; const customized = this.data.filter(i => i.isCustomized).length;
+                return { total, customized, default: total - customized };
+            },
+
+            getAdvancedStats() {
+                let totalMastery = 0; let weak = 0; let strong = 0; let trainedCount = 0;
+                let levels = { '0': 0, '1-2': 0, '3': 0, '4-5': 0 };
+                let mostReviewed = null; let maxReviews = -1; let latestReview = 0;
+
+                this.data.forEach(item => {
+                    totalMastery += item.masteryLevel;
+                    if (item.masteryLevel === 0) { levels['0']++; weak++; }
+                    else if (item.masteryLevel <= 2) { levels['1-2']++; weak++; }
+                    else if (item.masteryLevel === 3) levels['3']++;
+                    else { levels['4-5']++; strong++; }
+
+                    if (item.reviewCount > 0) trainedCount++;
+                    if (item.reviewCount > maxReviews) { maxReviews = item.reviewCount; mostReviewed = item; }
+                    if (item.lastReviewedAt > latestReview) latestReview = item.lastReviewedAt;
+                });
+
+                return {
+                    avgMastery: (totalMastery / this.data.length).toFixed(1),
+                    levels, weak, strong, mostReviewed: maxReviews > 0 ? mostReviewed : null, trainedCount,
+                    lastReviewDate: latestReview > 0 ? new Date(latestReview).toLocaleString('pt-BR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}) : null
+                };
+            },
+
+            getStudyItems(source = 'all') { 
+                if (source === 'custom') return this.data.filter(i => i.isCustomized);
+                if (source === 'weak') return this.data.filter(i => i.masteryLevel <= 2);
+                if (source === 'strong') return this.data.filter(i => i.masteryLevel >= 4);
+                return [...this.data]; 
+            },
+            shuffleItems(array) {
+                const result = [...array];
+                for (let i = result.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [result[i], result[j]] = [result[j], result[i]]; }
+                return result;
+            },
+            getRandomItems(count, source = 'all') { return this.shuffleItems(this.getStudyItems(source)).slice(0, count); }
+        };
+
+        /* =========================================================
+           3. UI HELPERS & MODALS
+           ========================================================= */
+        const UI = {
+            toastTimeout: null,
+            showToast(message, isError = false) {
+                const toast = document.getElementById('toast'); toast.textContent = message; toast.style.backgroundColor = isError ? 'var(--warning)' : 'var(--text-main)'; toast.classList.add('show');
+                if (this.toastTimeout) clearTimeout(this.toastTimeout); this.toastTimeout = setTimeout(() => { toast.classList.remove('show'); }, 2500);
+            },
+            normalizeText(str) { return (str || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase(); },
+            formatSequenceChunks(seq) {
+                if (!seq || seq.length <= 2) return seq;
+                const isOdd = seq.length % 2 !== 0; const first = isOdd ? seq.slice(0, 1) : ''; const rest = isOdd ? seq.slice(1) : seq;
+                const chunks = rest.match(/.{1,2}/g) || []; return (first ? [first, ...chunks] : chunks).join(' ');
+            },
+            mapSequenceToWordsHTML(seq) {
+                if (!seq) return "";
+                const chunks = this.formatSequenceChunks(seq).split(' ');
+                const wordsHtml = chunks.map(num => {
+                    const item = DataStore.getItem(num);
+                    const word = item ? item.activeWord : num;
+                    return `<span class="seq-word-chip">${word}</span>`;
+                }).join('');
+                return `<div class="seq-words-container">${wordsHtml}</div>`;
+            },
+            confirmAction(title, message, onConfirmCallback) {
+                document.getElementById('modalTitle').textContent = title; document.getElementById('modalMsg').textContent = message;
+                const confirmBtn = document.getElementById('modalConfirmBtn');
+                const newBtn = confirmBtn.cloneNode(true); confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
+                newBtn.addEventListener('click', () => { this.closeConfirm(); onConfirmCallback(); });
+                document.getElementById('confirmModal').classList.add('show');
+            },
+            closeConfirm() { document.getElementById('confirmModal').classList.remove('show'); },
+            openHelp() { document.getElementById('helpModal').classList.add('show'); },
+            closeHelp() { document.getElementById('helpModal').classList.remove('show'); },
+            
+            getMasteryInfo(level) {
+                if (level === 0 || !level) return { text: 'Iniciante', color: 'var(--text-muted)', bg: '#F1F5F9' };
+                if (level <= 2) return { text: 'Baixo', color: 'var(--danger-dark)', bg: '#FEE2E2' };
+                if (level === 3) return { text: 'Médio', color: 'var(--primary-dark)', bg: '#E0E7FF' };
+                return { text: 'Forte', color: 'var(--success-dark)', bg: '#D1FAE5' };
+            },
+            getMasteryBadge(level) {
+                const info = this.getMasteryInfo(level);
+                return `<span class="mastery-badge" style="background: ${info.bg}; color: ${info.color};">Domínio: ${info.text}</span>`;
+            }
+        };
+
+        /* =========================================================
+           4. CORE VIEWS
+           ========================================================= */
+        const HomeView = {
+            render() {
+                const stats = DataStore.getStats(); 
+                const advStats = DataStore.getAdvancedStats();
+                const percentage = Math.round((stats.customized / stats.total) * 100);
+                
+                document.getElementById('homeProgressText').textContent = `${stats.customized} / ${stats.total}`;
+                document.getElementById('homeProgressBar').style.width = `${percentage}%`;
+                
+                document.getElementById('homeMetaMastery').textContent = `Média: ${advStats.avgMastery}`;
+                document.getElementById('homeMetaWeakStrong').textContent = `Fracos: ${advStats.weak} | Fortes: ${advStats.strong}`;
+                document.getElementById('homeMetaLastTrain').textContent = `Último treino: ${advStats.lastReviewDate || 'Ainda não treinado'}`;
+            }
+        };
+
+        const TableView = {
+            currentFilter: 'all', currentLengthFilter: 'all', searchQuery: '',
+            init() { document.getElementById('searchInput').addEventListener('input', (e) => { this.searchQuery = e.target.value; this.render(); }); },
+            setFilter(filterType, btnElement) { this.currentFilter = filterType; document.querySelectorAll('#view-table .filters:nth-of-type(1) .chip').forEach(c => c.classList.remove('active')); btnElement.classList.add('active'); this.render(); },
+            setDecadeFilter(value) { this.currentLengthFilter = value; this.render(); },
+            getFilteredData() {
+                const query = UI.normalizeText(this.searchQuery);
+                return DataStore.data.filter(item => {
+                    const matchesSearch = query === '' || item.numberValue.includes(query) || UI.normalizeText(item.activeWord).includes(query) || UI.normalizeText(item.defaultWord).includes(query) || UI.normalizeText(item.customWord).includes(query);
+                    
+                    let matchesFilter = true;
+                    if (this.currentFilter === 'custom') matchesFilter = item.isCustomized;
+                    if (this.currentFilter === 'default') matchesFilter = !item.isCustomized;
+                    
+                    let matchesDecade = true;
+                    if (this.currentLengthFilter === 'single') matchesDecade = item.numberValue.length === 1;
+                    else if (this.currentLengthFilter !== 'all') {
+                        matchesDecade = item.numberValue.length === 2 && item.numberValue.startsWith(this.currentLengthFilter[0]);
+                    }
+
+                    return matchesSearch && matchesFilter && matchesDecade;
+                });
+            },
+            render() {
+                const container = document.getElementById('tableGridContainer'); const emptyState = document.getElementById('tableEmptyState');
+                const filteredData = this.getFilteredData(); document.getElementById('tableStatsText').textContent = `Mostrando ${filteredData.length} itens`;
+
+                if (filteredData.length === 0) { container.style.display = 'none'; emptyState.style.display = 'block'; return; }
+                container.style.display = 'grid'; emptyState.style.display = 'none'; container.innerHTML = '';
+                
+                filteredData.forEach(item => {
+                    const card = document.createElement('div'); card.className = `number-card ${item.isCustomized ? 'is-custom' : ''}`;
+                    card.onclick = () => Router.navigate('detail', { number: item.numberValue });
+                    card.innerHTML = `<div class="nc-num">${item.numberValue}</div><div class="nc-word" title="${item.activeWord}">${item.activeWord}</div>${UI.getMasteryBadge(item.masteryLevel)}`;
+                    container.appendChild(card);
+                });
+            }
+        };
+
+        const DetailView = {
+            currentNumber: null,
+            render(params) {
+                this.currentNumber = params.number; const item = DataStore.getItem(this.currentNumber);
+                if (!item) return Router.navigate('table');
+                document.getElementById('detailNumber').textContent = item.numberValue;
+                document.getElementById('detailDefaultWord').textContent = `Palavra padrão: ${item.defaultWord}`;
+                const inputWord = document.getElementById('inputWord');
+                inputWord.value = item.isCustomized ? item.customWord : ""; inputWord.placeholder = `Ex: ${item.defaultWord}`;
+                document.getElementById('inputHint').value = item.imageHint || "";
+                
+                const badge = document.getElementById('detailBadge'); const btnReset = document.getElementById('btnReset');
+                if (item.isCustomized) { badge.textContent = 'Personalizado'; badge.className = 'status-badge status-custom'; btnReset.style.display = 'flex'; } 
+                else { badge.textContent = 'Padrão'; badge.className = 'status-badge status-default'; btnReset.style.display = 'none'; }
+                
+                document.getElementById('detailMasteryBadge').innerHTML = UI.getMasteryBadge(item.masteryLevel);
+            },
+            save() {
+                if (!this.currentNumber) return;
+                DataStore.updateItem(this.currentNumber, document.getElementById('inputWord').value, document.getElementById('inputHint').value);
+                UI.showToast("Salvo!"); setTimeout(() => { document.getElementById('searchInput').value = ''; TableView.searchQuery = ''; Router.navigate('table'); }, 400);
+            },
+            resetToDefault() {
+                if (!this.currentNumber) return;
+                UI.confirmAction("Remover Personalização", "Deseja apagar sua palavra e imagem mental deste número? Ele voltará ao padrão.", () => {
+                    DataStore.resetItem(this.currentNumber); UI.showToast("Restaurado!"); Router.navigate('table');
+                });
+            }
+        };
+
+        const StatsView = {
+            render() {
+                const baseStats = DataStore.getStats();
+                const advStats = DataStore.getAdvancedStats();
+                const metrics = DataStore.metrics;
+
+                document.getElementById('stTotalSessions').textContent = metrics.totalSessions;
+                document.getElementById('stFlashSessions').textContent = metrics.totalFlashcardSessions;
+                document.getElementById('stSeqSessions').textContent = metrics.totalSequenceSessions;
+                document.getElementById('stBestSeq').textContent = metrics.bestSequenceLength;
+                
+                const modeLabels = {
+                    'flashcard-normal': 'Flashcards (Normal)', 'flashcard-reverse': 'Flashcards (Reverso)',
+                    'sequence-numbers': 'Seq. Numérica', 'sequence-words': 'Seq. Palavras'
+                };
+                document.getElementById('stLastMode').textContent = modeLabels[metrics.lastModePlayed] || metrics.lastModePlayed;
+                document.getElementById('stLastTrain').textContent = metrics.lastSessionAt ? new Date(metrics.lastSessionAt).toLocaleString('pt-BR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}) : 'Ainda não treinado';
+
+                document.getElementById('stTotalItems').textContent = baseStats.total;
+                document.getElementById('stCustomItems').textContent = baseStats.customized;
+                document.getElementById('stDefaultItems').textContent = baseStats.default;
+                document.getElementById('stTrainedItems').textContent = advStats.trainedCount;
+                document.getElementById('stAvgMastery').textContent = advStats.avgMastery;
+
+                document.getElementById('stLevelStrong').textContent = `${advStats.levels['4-5']} itens`;
+                document.getElementById('stLevelMedium').textContent = `${advStats.levels['3']} itens`;
+                document.getElementById('stLevelLow').textContent = `${advStats.levels['1-2']} itens`;
+                document.getElementById('stLevelZero').textContent = `${advStats.levels['0']} itens`;
+
+                const mostRevSec = document.getElementById('stMostReviewedSection');
+                if (advStats.mostReviewed) {
+                    mostRevSec.style.display = 'block';
+                    document.getElementById('stMostRevNum').textContent = advStats.mostReviewed.numberValue;
+                    document.getElementById('stMostRevWord').textContent = advStats.mostReviewed.activeWord;
+                    document.getElementById('stMostRevCount').textContent = `${advStats.mostReviewed.reviewCount} revisões`;
+                } else {
+                    mostRevSec.style.display = 'none';
+                }
+            }
+        };
+
+        /* =========================================================
+           5. FLASHCARDS CONTROLLERS
+           ========================================================= */
+        const FCConfigView = {
+            config: { source: 'all', qty: 10, mode: 'normal' },
+            setMode(mode, btnElement) { this.config.mode = mode; document.querySelectorAll('#fcModeGroup .chip').forEach(c => c.classList.remove('active')); btnElement.classList.add('active'); },
+            setSource(sourceType, btnElement) { this.config.source = sourceType; document.querySelectorAll('#fcSourceGroup .chip').forEach(c => c.classList.remove('active')); btnElement.classList.add('active'); },
+            setQty(quantity, btnElement) { this.config.qty = quantity; document.getElementById('fcCustomQty').value = ''; document.querySelectorAll('#fcQtyGroup .chip').forEach(c => c.classList.remove('active')); if(btnElement) btnElement.classList.add('active'); },
+            setCustomQty(value) { let num = parseInt(value, 10); if (!isNaN(num) && num > 0) { if (num > 110) num = 110; this.config.qty = num; document.querySelectorAll('#fcQtyGroup .chip').forEach(c => c.classList.remove('active')); } },
+            startSession() {
+                const items = DataStore.getRandomItems(this.config.qty, this.config.source);
+                if (items.length === 0) {
+                    const msgMap = { 'custom': 'personalizada', 'weak': 'fraca (Domínio 0-2)', 'strong': 'forte (Domínio 4-5)' };
+                    return UI.showToast(this.config.source !== 'all' ? `Nenhuma carta ${msgMap[this.config.source]} encontrada.` : "Nenhuma carta disponível.", true);
+                }
+                if (items.length < this.config.qty) UI.showToast(`Iniciando com as ${items.length} cartas disponíveis.`);
+                FCSessionView.start(items, this.config.mode);
+            }
+        };
+
+        const FCSessionView = {
+            sessionCards: [], sessionMeta: {}, currentIndex: 0, stats: { easy: 0, hard: 0 }, isFlipped: false, currentMode: 'normal', repeatedInSession: new Set(), isAnimating: false,
+            start(cardsArray, mode) { 
+                this.sessionCards = [...cardsArray]; this.currentMode = mode; this.currentIndex = 0; this.stats = { easy: 0, hard: 0 }; 
+                this.sessionMeta = { customCount: cardsArray.filter(c => c.isCustomized).length, initialTotal: cardsArray.length }; 
+                this.repeatedInSession = new Set(); this.isAnimating = false;
+                document.getElementById('fcScene').style.opacity = '1'; document.getElementById('fcScene').style.transform = 'scale(1)';
+                this.renderInner(); Router.navigate('flashcard-session'); 
+            },
+            renderInner() {
+                this.isFlipped = false; 
+                
+                // MÁGICA DO REFLOW: Desliga animação, volta instantaneamente, reativa animação
+                const cardEl = document.getElementById('fcCardElement');
+                cardEl.style.transition = 'none';
+                cardEl.classList.remove('is-flipped');
+                void cardEl.offsetWidth; // Força reflow
+                cardEl.style.transition = ''; // Retorna CSS
+
+                document.getElementById('fcInstructions').style.display = 'block'; 
+                document.getElementById('fcActions').classList.remove('visible');
+                
+                const item = this.sessionCards[this.currentIndex];
+                const initial = this.sessionMeta.initialTotal;
+                if (this.currentIndex < initial) {
+                    document.getElementById('fcProgressLabel').textContent = 'Carta';
+                    document.getElementById('fcCurrentCount').textContent = this.currentIndex + 1;
+                    document.getElementById('fcTotalCount').textContent = initial;
+                } else {
+                    document.getElementById('fcProgressLabel').textContent = 'Reforço';
+                    document.getElementById('fcCurrentCount').textContent = (this.currentIndex - initial) + 1;
+                    document.getElementById('fcTotalCount').textContent = this.sessionCards.length - initial;
+                }
+                document.getElementById('fcExtraBadge').style.display = this.sessionCards.length > initial ? 'inline-block' : 'none';
+                
+                const frontEl = document.getElementById('fcFaceFront'); const backEl = document.getElementById('fcFaceBack');
+                const badgeHtml = `<div class="status-badge ${item.isCustomized ? 'status-custom' : 'status-default'}" style="margin-bottom: 12px; margin-right: 8px;">${item.isCustomized ? 'Personalizado' : 'Padrão'}</div>`;
+                const masteryHtml = UI.getMasteryBadge(item.masteryLevel);
+                const hintHtml = item.imageHint ? `<div class="fc-hint">"${item.imageHint}"</div>` : '';
+
+                if (this.currentMode === 'reverse') {
+                    frontEl.innerHTML = `<div class="fc-word" style="font-size: 3rem;">${item.activeWord}</div>`;
+                    backEl.innerHTML = `<div style="display:flex; justify-content:center; align-items:center; margin-bottom:12px;">${badgeHtml}${masteryHtml}</div><div class="fc-number" style="font-size: 4.5rem; margin-bottom:16px;">${item.numberValue}</div>${hintHtml}`;
+                } else {
+                    frontEl.innerHTML = `<div class="fc-number">${item.numberValue}</div>`;
+                    backEl.innerHTML = `<div style="display:flex; justify-content:center; align-items:center; margin-bottom:12px;">${badgeHtml}${masteryHtml}</div><div class="fc-word">${item.activeWord}</div>${hintHtml}`;
+                }
+            },
+            flipCard() { if (this.isFlipped || this.isAnimating) return; this.isFlipped = true; document.getElementById('fcCardElement').classList.add('is-flipped'); document.getElementById('fcInstructions').style.display = 'none'; setTimeout(() => { document.getElementById('fcActions').classList.add('visible'); }, 300); },
+            answer(result) {
+                if (this.isAnimating) return;
+                this.isAnimating = true;
+
+                const item = this.sessionCards[this.currentIndex]; const isEasy = result === 'easy';
+                if (isEasy) this.stats.easy++; else this.stats.hard++;
+                DataStore.updateMastery(item.numberValue, isEasy); 
+                
+                if (!isEasy && !this.repeatedInSession.has(item.numberValue)) {
+                    this.sessionCards.push(item);
+                    this.repeatedInSession.add(item.numberValue);
+                }
+
+                document.getElementById('fcActions').classList.remove('visible');
+                
+                const scene = document.getElementById('fcScene');
+                scene.style.opacity = '0';
+                scene.style.transform = 'scale(0.95)';
+
+                setTimeout(() => {
+                    this.currentIndex++;
+                    
+                    if (this.currentIndex >= this.sessionCards.length) {
+                        scene.style.opacity = '1'; scene.style.transform = 'scale(1)';
+                        this.isAnimating = false;
+                        return this.finishSession();
+                    }
+
+                    this.renderInner();
+
+                    setTimeout(() => {
+                        scene.style.opacity = '1';
+                        scene.style.transform = 'scale(1)';
+                        this.isAnimating = false;
+                    }, 50);
+
+                }, 200);
+            },
+            finishSession() { 
+                DataStore.recordSession('flashcard-' + this.currentMode);
+                FCSummaryView.render(this.stats, this.sessionCards.length, this.sessionMeta); 
+                Router.navigate('flashcard-summary'); 
+            }
+        };
+
+        const FCSummaryView = {
+            render(stats, total, meta) {
+                document.getElementById('summaryEasy').textContent = stats.easy; document.getElementById('summaryHard').textContent = stats.hard;
+                document.getElementById('summaryCustom').textContent = meta.customCount || 0; document.getElementById('summaryTotal').textContent = meta.initialTotal;
+                const extraCount = total - meta.initialTotal; const extraEl = document.getElementById('summaryExtra'); extraEl.textContent = extraCount;
+                document.getElementById('summaryExtraWrapper').style.display = extraCount > 0 ? 'flex' : 'none';
+            }
+        };
+
+        /* =========================================================
+           6. SEQUENCES CONTROLLERS
+           ========================================================= */
+        const SeqConfigView = {
+            config: { qty: 4, speedMode: false, speedTime: 3, chunkMode: false, seqType: 'numbers' }, currentSequence: "",
+            
+            setSeqType(type, btnElement) { this.config.seqType = type; document.querySelectorAll('#seqTypeGroup .chip').forEach(c => c.classList.remove('active')); btnElement.classList.add('active'); },
+            toggleChunkMode(isActive, btnElement) { this.config.chunkMode = isActive; document.querySelectorAll('#seqChunkGroup .chip').forEach(c => c.classList.remove('active')); btnElement.classList.add('active'); },
+            toggleSpeedMode(isActive, btnElement) { this.config.speedMode = isActive; document.querySelectorAll('#seqSpeedGroup .chip').forEach(c => c.classList.remove('active')); btnElement.classList.add('active'); document.getElementById('seqSpeedTimeWrapper').style.display = isActive ? 'block' : 'none'; },
+            setSpeedTime(value) { let num = parseFloat(value); if (!isNaN(num)) { num = Math.max(0.5, Math.min(num, 20)); this.config.speedTime = num; document.getElementById('seqSpeedTime').value = num; } },
+            setQty(quantity, btnElement) { this.config.qty = quantity; document.getElementById('seqCustomQty').value = ''; document.querySelectorAll('#seqQtyGroup .chip').forEach(c => c.classList.remove('active')); if(btnElement) btnElement.classList.add('active'); },
+            setCustomQty(value) { let num = parseInt(value, 10); if (!isNaN(num) && num > 0) { if (num > 50) num = 50; this.config.qty = num; document.querySelectorAll('#seqQtyGroup .chip').forEach(c => c.classList.remove('active')); } },
+            
+            generateRandomSequence(length) { let seq = ""; for(let i=0; i<length; i++) { seq += Math.floor(Math.random() * 10).toString(); } return seq; },
+            
+            startSession() { this.currentSequence = this.generateRandomSequence(this.config.qty); SeqMemorizeView.render(this.currentSequence, this.config); Router.navigate('seq-memorize'); },
+            retrySame() { SeqMemorizeView.render(this.currentSequence, this.config); Router.navigate('seq-memorize'); }
+        };
+
+        const SeqMemorizeView = {
+            speedTimer: null,
+            render(sequence, config) {
+                const displayEl = document.getElementById('seqDisplayDigits');
+                
+                if (config.seqType === 'words') {
+                    displayEl.innerHTML = UI.mapSequenceToWordsHTML(sequence);
+                } else {
+                    const displayStr = config.chunkMode ? UI.formatSequenceChunks(sequence) : sequence;
+                    displayEl.innerHTML = displayStr;
+                }
+                
+                this.cleanup(); 
+                const btn = document.getElementById('btnSeqMemorize'); const progressContainer = document.getElementById('seqSpeedProgressContainer'); const progressBar = document.getElementById('seqSpeedProgressBar');
+
+                if (config.speedMode) {
+                    btn.innerHTML = 'Pular Agora ⏭️'; progressContainer.style.display = 'block'; progressBar.style.transition = 'none'; progressBar.style.width = '100%';
+                    requestAnimationFrame(() => { requestAnimationFrame(() => { progressBar.style.transition = `width ${config.speedTime}s linear`; progressBar.style.width = '0%'; }); });
+                    this.speedTimer = setTimeout(() => { this.goToAnswer(); }, config.speedTime * 1000);
+                } else { btn.innerHTML = '👁️ Já Memorizei'; progressContainer.style.display = 'none'; }
+            },
+            cleanup() { if (this.speedTimer) { clearTimeout(this.speedTimer); this.speedTimer = null; } const progressBar = document.getElementById('seqSpeedProgressBar'); if (progressBar) { progressBar.style.transition = 'none'; progressBar.style.width = '100%'; } },
+            goToAnswer() { this.cleanup(); SeqAnswerView.render(); Router.navigate('seq-answer'); }
+        };
+
+        const SeqAnswerView = {
+            render() { const inputEl = document.getElementById('seqInputAnswer'); inputEl.value = ""; setTimeout(() => inputEl.focus(), 300); },
+            sanitizeInput(val) { return val.replace(/\D/g, ''); },
+            submitAnswer() {
+                const cleanVal = this.sanitizeInput(document.getElementById('seqInputAnswer').value);
+                if (cleanVal === "") { UI.showToast("Digite algo para confirmar.", true); return; }
+                SeqResultView.render(SeqConfigView.currentSequence, cleanVal, SeqConfigView.config); Router.navigate('seq-result');
+            }
+        };
+
+        const SeqResultView = {
+            render(expected, actual, config) {
+                DataStore.recordSession('sequence-' + config.seqType, expected.length);
+
+                let correctCount = 0; let htmlDiff = ""; const maxLength = Math.max(expected.length, actual.length);
+                for (let i = 0; i < maxLength; i++) {
+                    const expChar = expected[i] || ""; const actChar = actual[i] || "";
+                    if (expChar === actChar) { correctCount++; htmlDiff += `<span class="diff-char diff-correct">${actChar}</span>`; } 
+                    else if (actChar === "") { htmlDiff += `<span class="diff-char diff-missing">_</span>`; } 
+                    else { htmlDiff += `<span class="diff-char diff-wrong">${actChar}</span>`; }
+                }
+                const pct = Math.round((correctCount / expected.length) * 100) || 0;
+                document.getElementById('seqResTotal').textContent = expected.length; document.getElementById('seqResCorrect').textContent = correctCount; document.getElementById('seqResPct').textContent = `${pct}%`;
+                document.getElementById('seqVisualDiff').innerHTML = htmlDiff; document.getElementById('seqExpected').textContent = expected;
+                
+                const chunkDiv = document.getElementById('seqExpectedChunked');
+                if (config.chunkMode && config.seqType !== 'words') { chunkDiv.textContent = `(${UI.formatSequenceChunks(expected)})`; chunkDiv.style.display = 'block'; } else { chunkDiv.style.display = 'none'; }
+
+                const stimulusBox = document.getElementById('seqStimulusBox');
+                if (config.seqType === 'words') {
+                    document.getElementById('seqStimulusWords').innerHTML = UI.mapSequenceToWordsHTML(expected);
+                    stimulusBox.style.display = 'block';
+                } else { stimulusBox.style.display = 'none'; }
+
+                const iconEl = document.getElementById('seqResultIcon'); const titleEl = document.getElementById('seqResultTitle');
+                if (pct === 100) { iconEl.textContent = "🏆"; titleEl.textContent = "Perfeito!"; } else if (pct >= 50) { iconEl.textContent = "👍"; titleEl.textContent = "Quase lá!"; } else { iconEl.textContent = "🧠"; titleEl.textContent = "Continue treinando!"; }
+            }
+        };
+
+        /* =========================================================
+           7. LOOKUP & SETTINGS CONTROLLERS
+           ========================================================= */
+        const LookupView = {
+            currentMode: 'word', query: '',
+            init() { document.getElementById('lookupInput').addEventListener('input', (e) => { this.query = e.target.value; this.render(); }); },
+            setMode(mode, btnElement) { this.currentMode = mode; document.querySelectorAll('#view-lookup .chip').forEach(c => c.classList.remove('active')); btnElement.classList.add('active'); this.render(); },
+            render() {
+                const container = document.getElementById('lookupResultsContainer'); const emptyState = document.getElementById('lookupEmptyState');
+                container.innerHTML = ''; if (!this.query.trim()) { container.style.display = 'none'; emptyState.style.display = 'none'; return; }
+                const normalizedQuery = UI.normalizeText(this.query);
+                
+                const results = DataStore.data.filter(item => {
+                    if (this.currentMode === 'number') return item.numberValue.includes(normalizedQuery);
+                    else return UI.normalizeText(item.activeWord).includes(normalizedQuery) || UI.normalizeText(item.defaultWord).includes(normalizedQuery) || UI.normalizeText(item.customWord).includes(normalizedQuery);
+                });
+
+                results.sort((a, b) => {
+                    if (a.isCustomized && !b.isCustomized) return -1;
+                    if (!a.isCustomized && b.isCustomized) return 1;
+                    return 0;
+                });
+
+                if (results.length === 0) { container.style.display = 'none'; emptyState.style.display = 'block'; return; }
+                container.style.display = 'flex'; emptyState.style.display = 'none';
+                results.forEach(item => {
+                    const card = document.createElement('div'); card.className = 'lookup-card'; card.onclick = () => Router.navigate('detail', { number: item.numberValue });
+                    const badge = item.isCustomized ? `<span class="status-badge status-custom" style="font-size: 0.65rem;">Personalizado</span>` : `<span class="status-badge status-default" style="font-size: 0.65rem;">Padrão</span>`;
+                    const hintHtml = item.imageHint ? `<div class="lookup-hint">"${item.imageHint}"</div>` : '';
+                    card.innerHTML = `<div class="lookup-num">${item.numberValue}</div><div class="lookup-content"><div style="display: flex; align-items: center; gap: 8px;"><span class="lookup-word">${item.activeWord}</span>${badge}</div>${hintHtml}<div style="margin-top: 4px;">${UI.getMasteryBadge(item.masteryLevel)}</div></div>`;
+                    container.appendChild(card);
+                });
+            }
+        };
+
+        const SettingsView = {
+            exportBackup() {
+                try {
+                    const exportData = { schemaVersion: 2, exportedAt: new Date().toISOString(), items: DataStore.data, metrics: DataStore.metrics };
+                    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `mnemonix-backup-${new Date().toISOString().split('T')[0]}.json`;
+                    a.click(); URL.revokeObjectURL(url); UI.showToast("Backup exportado com sucesso!");
+                } catch (e) { UI.showToast("Erro ao exportar backup.", true); }
+            },
+            triggerImport() { document.getElementById('fileImportJson').click(); },
+            handleImport(event) {
+                const file = event.target.files[0]; if (!file) return; const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const parsed = JSON.parse(e.target.result); const items = parsed.items || parsed; 
+                        if (!Array.isArray(items) || items.length < 100 || !items[0].numberValue) throw new Error("Formato inválido");
+                        DataStore.data = items; 
+                        if (parsed.metrics) DataStore.metrics = { ...DataStore.metrics, ...parsed.metrics };
+                        DataStore.migrateDataIfNeeded(); 
+                        UI.showToast("Dados restaurados com sucesso!"); Router.navigate('home');
+                    } catch (err) { UI.showToast("Erro: Arquivo JSON inválido.", true); }
+                    document.getElementById('fileImportJson').value = ""; 
+                }; reader.readAsText(file);
+            },
+            resetAllData() {
+                UI.confirmAction("CUIDADO: Restaurar Padrão", "Esta ação apagará todas as suas personalizações e progresso, retornando aos 110 itens padrão. Isso não pode ser desfeito.", () => {
+                    DataStore.buildSeed(); 
+                    DataStore.metrics = { totalSessions: 0, totalFlashcardSessions: 0, totalSequenceSessions: 0, bestSequenceLength: 0, lastModePlayed: '-', lastSessionAt: null };
+                    DataStore.saveMetrics();
+                    UI.showToast("App restaurado para os padrões de fábrica!"); Router.navigate('home');
+                });
+            }
+        };
+
+        /* =========================================================
+           8. ROUTER
+           ========================================================= */
+        const Router = {
+            currentView: 'home',
+
+            init() {
+                window.addEventListener('popstate', (e) => {
+                    if (e.state && e.state.view) this.renderView(e.state.view, e.state.params, false);
+                    else this.renderView('home', null, false);
+                });
+
+                document.getElementById('btnBack').addEventListener('click', () => {
+                    if (this.currentView === 'detail') this.navigate('table');
+                    else if (['flashcard-session', 'flashcard-summary'].includes(this.currentView)) { UI.showToast('Treino encerrado.'); this.navigate('flashcard-config'); }
+                    else if (['seq-memorize', 'seq-answer', 'seq-result'].includes(this.currentView)) { SeqMemorizeView.cleanup(); UI.showToast('Treino encerrado.'); this.navigate('seq-config'); }
+                    else this.navigate('home');
+                });
+
+                this.renderView('home', null, true);
+            },
+
+            navigate(view, params = null) { this.renderView(view, params, true); },
+
+            renderView(view, params, pushState = true) {
+                if (this.currentView === 'seq-memorize' && view !== 'seq-memorize') { SeqMemorizeView.cleanup(); }
+
+                document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+                const btnBack = document.getElementById('btnBack'); const btnSettings = document.getElementById('btnSettings');
+                const btnHelp = document.getElementById('btnHelp'); const title = document.getElementById('headerTitle'); 
+                const targetView = document.getElementById(`view-${view}`);
+                
+                if (!targetView) return this.renderView('home', null, pushState);
+
+                btnSettings.style.display = view === 'home' ? 'block' : 'none';
+                btnHelp.style.display = view === 'home' ? 'block' : 'none';
+
+                switch (view) {
+                    case 'home': title.textContent = 'Mnemônix'; btnBack.style.display = 'none'; HomeView.render(); break;
+                    case 'table': title.textContent = 'Dicionário Completo'; btnBack.style.display = 'flex'; TableView.render(); break;
+                    case 'detail': title.textContent = `Editar ${params?.number || ''}`; btnBack.style.display = 'flex'; DetailView.render(params); break;
+                    case 'stats': title.textContent = 'Estatísticas'; btnBack.style.display = 'flex'; StatsView.render(); break;
+                    
+                    case 'flashcard-config': title.textContent = 'Flashcards'; btnBack.style.display = 'flex'; break;
+                    case 'flashcard-session': title.textContent = 'Treino Ativo'; btnBack.style.display = 'flex'; if (FCSessionView.sessionCards.length === 0) { UI.showToast("Inicie uma sessão primeiro."); return this.navigate('flashcard-config'); } break;
+                    case 'flashcard-summary': title.textContent = 'Resultado'; btnBack.style.display = 'flex'; break;
+                    
+                    case 'seq-config': title.textContent = 'Sequências'; btnBack.style.display = 'flex'; break;
+                    case 'seq-memorize': title.textContent = 'Memorize'; btnBack.style.display = 'flex'; if(!SeqConfigView.currentSequence) { UI.showToast("Gere uma sequência primeiro."); return this.navigate('seq-config'); } break;
+                    case 'seq-answer': title.textContent = 'Sua Resposta'; btnBack.style.display = 'flex'; if(!SeqConfigView.currentSequence) return this.navigate('seq-config'); break;
+                    case 'seq-result': title.textContent = 'Resultado'; btnBack.style.display = 'flex'; if(!SeqConfigView.currentSequence) return this.navigate('seq-config'); break;
+                    
+                    case 'lookup': title.textContent = 'Busca Reversa'; btnBack.style.display = 'flex'; LookupView.init(); break;
+                    case 'settings': title.textContent = 'Configurações'; btnBack.style.display = 'flex'; break;
+
+                    default: return this.renderView('home', null, pushState);
+                }
+
+                targetView.classList.add('active'); this.currentView = view; window.scrollTo(0, 0);
+                if (pushState) history.pushState({ view, params }, '', `#${view}${params ? '/' + params.number : ''}`);
+            }
+        };
+
+        /* =========================================================
+           9. INITIALIZATION
+           ========================================================= */
+        document.addEventListener('DOMContentLoaded', () => {
+            DataStore.init();
+            TableView.init();
+            Router.init();
+        });
+
+    </script>
+</body>
+</html>
