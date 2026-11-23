@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Mnemônix">
+  <defs>
+    <linearGradient id="bg" x1="70" y1="42" x2="446" y2="476" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6d5dfc"/>
+      <stop offset="1" stop-color="#3730a3"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="174" y1="142" x2="342" y2="370" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#dbeafe"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <circle cx="92" cy="94" r="54" fill="#ffffff" opacity=".08"/>
+  <circle cx="438" cy="420" r="94" fill="#ffffff" opacity=".06"/>
+  <path d="M148 354V185c0-25 20-45 45-45 18 0 34 11 41 27 7-16 23-27 42-27 25 0 45 20 45 45v169" fill="none" stroke="url(#glow)" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M234 190v125m0-72 87-55" fill="none" stroke="#fff" stroke-width="20" stroke-linecap="round" opacity=".95"/>
+  <circle cx="148" cy="354" r="22" fill="#a7f3d0"/>
+  <circle cx="321" cy="354" r="22" fill="#fde68a"/>
+  <circle cx="234" cy="243" r="19" fill="#fff"/>
+</svg>
