@@ -1,0 +1,19 @@
+{
+  "name": "mnemonix",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "find api public -name '*.js' -print0 | xargs -0 -n1 node --check",
+    "test": "node --test",
+    "build": "npm run check"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "1.1.0",
+    "bcryptjs": "3.0.3",
+    "nodemailer": "10.6.1"
+  }
+}
