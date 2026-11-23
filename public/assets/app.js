@@ -314,6 +314,11 @@ document.addEventListener('change', async event => {
 });
 
 document.addEventListener('click', async event => {
+  if (event.target.closest('.skip-link')) {
+    event.preventDefault();
+    find('#content')?.focus();
+    return;
+  }
   const control = event.target.closest('[data-action]');
   if (!control) return;
   const action = control.dataset.action;

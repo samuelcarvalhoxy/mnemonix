@@ -34,7 +34,7 @@ export function shell(view, current, user, sync) {
         <nav class="nav-links" aria-label="Navegação principal">${nav(current)}</nav>
         <div class="rail-end">${button('Instalar aplicativo','install','btn ghost','plus')}
           <a class="account-line" href="#${user ? 'conta' : 'auth/login'}"><span class="avatar" aria-hidden="true">${user ? esc(user.name.charAt(0).toUpperCase()) : icon('user')}</span>
-          <div><strong>${identity}</strong><p class="small muted">${user ? 'Minha conta' : 'Progresso neste aparelho'}</p></div></a>
+          <div><strong>${identity}</strong><p class="small muted">${user ? 'Minha conta' : 'Progresso local'}</p></div></a>
         </div>
       </aside>
       <div class="workspace">
